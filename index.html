@@ -1,65 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Azan Times & Qibla / اذان کے اوقات اور قبلہ</title>
-<style>
-body {
-    font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    text-align:center;
-    padding:20px;
-    background: linear-gradient(135deg,#a7f3d0,#bfdbfe);
-    color:#123;
-}
-h1{margin-bottom:10px;}
-.sub{opacity:.8;margin-bottom:8px;}
-.card{
-    background:#fff;
-    display:inline-block;
-    padding:15px 20px;
-    border-radius:12px;
-    box-shadow:0 4px 10px rgba(0,0,0,.1);
-    margin-bottom:15px;
-    max-width:360px;
-}
-.row{display:flex; justify-content:space-between; margin-bottom:8px; padding:4px; border-radius:6px;}
-.row.nextPrayer{background:#0ea5e9; color:#fff;}
-.time{font-weight:700;}
-.warn{
-    margin:8px auto;
-    padding:6px 10px;
-    border:1px solid #fdba74;
-    border-radius:6px;
-    background:#fff7ed;
-    font-weight:600;
-    font-size:14px;
-    max-width:300px;
-}
-.clock{margin-top:8px; font-size:20px; font-weight:800; color:#ef4444;}
-#countdown{margin-top:6px; font-weight:700; color:#166534;}
+  <title>Azan Times & Qibla / اذان کے اوقات اور قبلہ</title>
+  <style>
+    body {
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      text-align:center;
+      padding:20px;
+      background: linear-gradient(135deg,#a7f3d0,#bfdbfe);
+      color:#123;
+    }
+    h1{margin-bottom:10px;}
+    .sub{opacity:.8;margin-bottom:8px;}
+    .card{
+      background:#fff;
+      display:inline-block;
+      padding:15px 20px;
+      border-radius:12px;
+      box-shadow:0 4px 10px rgba(0,0,0,.1);
+      margin-bottom:15px;
+      max-width:360px;
+    }
+    .row{display:flex; justify-content:space-between; margin-bottom:8px; padding:4px; border-radius:6px;}
+    .row.nextPrayer{background:#0ea5e9; color:#fff;}
+    .time{font-weight:700;}
+    .warn{
+      margin:8px auto;
+      padding:6px 10px;
+      border:1px solid #fdba74;
+      border-radius:6px;
+      background:#fff7ed;
+      font-weight:600;
+      font-size:14px;
+      max-width:300px;
+    }
+    .clock{margin-top:8px; font-size:20px; font-weight:800; color:#ef4444;}
+    #countdown{margin-top:6px; font-weight:700; color:#166534;}
 
-/* Qibla Compass Styles */
-#qiblaContainer { margin: 20px auto; width:200px; height:200px; position:relative; }
-#dial {
-    width:100%; height:100%; border-radius:50%;
-    background: conic-gradient(#0ea5e9 0deg 360deg,#38bdf8 0deg 360deg);
-    position:relative; border:3px solid #0369a1;
-    box-shadow:0 4px 12px rgba(0,0,0,0.2);
-}
-#needle {
-    width:4px; height:90px; background:red;
-    position:absolute; left:50%; top:50%;
-    transform-origin:bottom center; transform:translateX(-50%) rotate(0deg);
-    border-radius:2px; transition:transform 0.5s ease-out;
-    box-shadow:0 0 6px rgba(255,0,0,0.7);
-}
-#kaaba {
-    position:absolute; top:10px; left:50%; transform:translateX(-50%);
-    font-size:24px; color:gold; text-shadow:0 0 5px #000;
-}
-#qiblaLabel{margin-top:5px; font-weight:600;}
-</style>
+    /* Qibla Compass Styles */
+    #qiblaContainer { margin: 20px auto; width:200px; height:200px; position:relative; }
+    #dial {
+        width:100%; height:100%; border-radius:50%;
+        background: conic-gradient(#0ea5e9 0deg 360deg,#38bdf8 0deg 360deg);
+        position:relative; border:3px solid #0369a1;
+        box-shadow:0 4px 12px rgba(0,0,0,0.2);
+    }
+    #needle {
+        width:100px; height:4px; background:red;
+        position:absolute; left:50%; top:50%;
+        transform-origin:left center;  /* pivot from center */
+        transform:translateY(-50%) rotate(0deg);
+        border-radius:2px; transition:transform 0.5s ease-out;
+        box-shadow:0 0 6px rgba(255,0,0,0.7);
+    }
+    #kaaba {
+        position:absolute; top:10px; left:50%; transform:translateX(-50%);
+        font-size:24px; color:gold; text-shadow:0 0 5px #000;
+    }
+    #qiblaLabel{margin-top:5px; font-weight:600;}
+  </style>
 </head>
 <body>
 
@@ -194,7 +195,7 @@ if(window.DeviceOrientationEvent){
         const qiblaDir = calcQibla(userLat, userLon);
         const alpha = e.alpha ?? e.webkitCompassHeading ?? 0;
         const rotation = qiblaDir - alpha;
-        needle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+        needle.style.transform = `translateY(-50%) rotate(${rotation}deg)`;
     }, true);
 }else{
     document.getElementById('qiblaLabel').textContent = 'Qibla compass not supported / آپ کے ڈیوائس پر قبلہ کمپاس سپورٹ نہیں';
