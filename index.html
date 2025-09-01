@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Azan Times & Qibla / اذان کے اوقات اور قبلہ</title>
+<style>
+body {
+    font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    text-align:center;
+    padding:20px;
+    background: linear-gradient(135deg,#a7f3d0,#bfdbfe);
+    color:#123;
+}
+h1{margin-bottom:10px;}
+.sub{opacity:.8;margin-bottom:8px;}
+.card{
+    background:#fff;
+    display:inline-block;
+    padding:15px 20px;
+    border-radius:12px;
+    box-shadow:0 4px 10px rgba(0,0,0,.1);
+    margin-bottom:15px;
+    max-width:360px;
+}
+.row{display:flex; justify-content:space-between; margin-bottom:8px; padding:4px; border-radius:6px;}
+.row.nextPrayer{background:#0ea5e9; color:#fff;}
+.time{font-weight:700;}
+.warn{
+    margin:8px auto;
+    padding:6px 10px;
+    border:1px solid #fdba74;
+    border-radius:6px;
+    background:#fff7ed;
+    font-weight:600;
+    font-size:14px;
+    max-width:300px;
+}
+.clock{margin-top:8px; font-size:20px; font-weight:800; color:#ef4444;}
+#countdown{margin-top:6px; font-weight:700; color:#166534;}
+
+/* Qibla Compass Styles */
+#qiblaContainer { margin: 20px auto; width:200px; height:200px; position:relative; }
+#dial {
+    width:100%; height:100%; border-radius:50%;
+    background: conic-gradient(#0ea5e9 0deg 360deg,#38bdf8 0deg 360deg);
+    position:relative; border:3px solid #0369a1;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2);
+}
+#needle {
+    width:4px; height:90px; background:red;
+    position:absolute; left:50%; top:50%;
+    transform-origin:bottom center; transform:translateX(-50%) rotate(0deg);
+    border-radius:2px; transition:transform 0.5s ease-out;
+    box-shadow:0 0 6px rgba(255,0,0,0.7);
+}
+#kaaba {
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    font-size:24px; color:gold; text-shadow:0 0 5px #000;
+}
+#qiblaLabel{margin-top:5px; font-weight:600;}
+</style>
+</head>
+<body>
+
+<h1>🕌 Azan Times & Qibla / اذان کے اوقات اور قبلہ</h1>
+<p id="where" class="sub">Detecting location… / مقام معلوم کیا جا رہا ہے…</p>
+<div id="clock" class="clock">--:--:--</div>
+
+<div class="warn">
+⚠️ Click anywhere to enable Azan audio / اذان کی آواز فعال کرنے کے لیے صفحے پر کلک کریں۔
+</div>
+
+<div id="qiblaContainer">
+  <div id="dial">
+    <div id="needle"></div>
+    <div id="kaaba">&#x1F54B;</div>
+  </div>
+</div>
+<div id="qiblaLabel">Qibla / قبلہ</div>
+
+<div class="card">
+  <div class="row" id="Fajr"><div>Fajr / فجر</div><div class="time">--:--</div></div>
+  <div class="row" id="Sunrise"><div>Sunrise / طلوع آفتاب</div><div class="time">--:--</div></div>
+  <div class="row" id="Dhuhr"><div>Dhuhr / ظہر</div><div class="time">--:--</div></div>
+  <div class="row" id="Asr"><div>Asr / عصر</div><div class="time">--:--</div></div>
+  <div class="row" id="Maghrib"><div>Maghrib / مغرب</div><div class="time">--:--</div></div>
+  <div class="row" id="Sunset"><div>Sunset / غروب آفتاب</div><div class="time">--:--</div></div>
+  <div class="row" id="Isha"><div>Isha / عشاء</div><div class="time">--:--</div></div>
+</div>
+
+<div id="countdown">Next prayer in: --:--:--</div>
+
+<audio id="azanAudio" src="https://www.islamcan.com/audio/adhan/azan1.mp3" preload="auto"></audio>
+
+<script>
+const API='https://api.aladhan.com/v1/timings';
+const keys=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Sunset','Isha'];
+let unlocked=false, userLat=0, userLon=0;
+let timingsData={};
+const audio=document.getElementById('azanAudio');
+
+// Enable Azan
+const enableAzan=()=>{
+    if(unlocked) return;
+    audio.play().then(()=>{audio.pause(); audio.currentTime=0;}).catch(()=>{});
+    unlocked=true;
+    document.querySelector('.warn').innerHTML='✅ Azan enabled / آذان فعال';
+};
+window.addEventListener('pointerdown',enableAzan,{once:true});
+window.addEventListener('keydown',enableAzan,{once:true});
+
+// Clock
+function tick(){ document.getElementById('clock').textContent=new Date().toLocaleTimeString(); }
+setInterval(tick,1000); tick();
+
+// Fetch prayer timings
+async function fetchTimings(lat, lon){
+    try{
+        const res=await fetch(`${API}?latitude=${lat}&longitude=${lon}&method=2&school=1`);
+        const data=await res.json();
+        timingsData = data.data.timings;
+        keys.forEach(k=>{
+            const m=String(timingsData[k]).match(/\d{1,2}:\d{2}/);
+            const el = document.getElementById(k);
+            if(el) el.querySelector('.time').textContent = m?m[0]:'--:--';
+        });
+        scheduleAzan(timingsData);
+    }catch(e){ console.error(e); alert('Failed to load prayer times / نماز کے اوقات لوڈ کرنے میں ناکام'); }
+}
+
+// Schedule Azan
+function scheduleAzan(timings){
+    const prayerKeys=['Fajr','Dhuhr','Asr','Maghrib','Isha'];
+    const now=new Date();
+    prayerKeys.forEach(k=>{
+        const t=timings[k].match(/\d{1,2}:\d{2}/);
+        if(!t) return;
+        const [h,m]=t.map(Number);
+        const target=new Date(now.getFullYear(),now.getMonth(),now.getDate(),h,m,0);
+        const diff=target-now;
+        if(diff>0){
+            setTimeout(()=>{ if(unlocked) audio.play().catch(()=>{}); },diff);
+        }
+    });
+}
+
+// Reverse geocode
+async function getLocationName(lat, lon){
+    try{
+        const res=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`);
+        const data=await res.json();
+        const city = data.address.city || data.address.town || data.address.village || '';
+        const country = data.address.country || '';
+        return city? `${city}, ${country}` : country;
+    }catch{return 'Unknown Location / نامعلوم مقام';}
+}
+
+// Watch user location continuously
+if('geolocation' in navigator){
+    navigator.geolocation.watchPosition(async pos=>{
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        const locationName = await getLocationName(userLat, userLon);
+        document.getElementById('where').textContent=`📍 ${locationName}`;
+        fetchTimings(userLat, userLon);
+    }, err=>{
+        userLat = 21.3891; userLon = 39.8579;
+        document.getElementById('where').textContent='⚠️ Using Makkah / مکہ کا مقام استعمال کیا جا رہا ہے';
+        fetchTimings(userLat, userLon);
+    },{enableHighAccuracy:true,timeout:10000, maximumAge:0});
+}else{
+    userLat = 21.3891; userLon = 39.8579;
+    document.getElementById('where').textContent='⚠️ Geolocation not supported / آپ کے براؤزر میں جیو لوکیشن سپورٹ نہیں';
+    fetchTimings(userLat, userLon);
+}
+
+// Qibla Calculation
+function calcQibla(lat, lon){
+    const kaabaLat = 21.4225 * Math.PI/180;
+    const kaabaLon = 39.8262 * Math.PI/180;
+    lat = lat * Math.PI/180; lon = lon * Math.PI/180;
+    const y = Math.sin(kaabaLon - lon);
+    const x = Math.cos(lat)*Math.tan(kaabaLat) - Math.sin(lat)*Math.cos(kaabaLon - lon);
+    let angle = Math.atan2(y, x) * 180/Math.PI;
+    return (angle + 360) % 360;
+}
+
+// Qibla Compass
+const needle = document.getElementById('needle');
+if(window.DeviceOrientationEvent){
+    window.addEventListener('deviceorientationabsolute', e=>{
+        if(userLat===0 && userLon===0) return;
+        const qiblaDir = calcQibla(userLat, userLon);
+        const alpha = e.alpha ?? e.webkitCompassHeading ?? 0;
+        const rotation = qiblaDir - alpha;
+        needle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+    }, true);
+}else{
+    document.getElementById('qiblaLabel').textContent = 'Qibla compass not supported / آپ کے ڈیوائس پر قبلہ کمپاس سپورٹ نہیں';
+}
+
+// Highlight next prayer & countdown
+function updateNextPrayer(){
+    const now = new Date();
+    let nextTime=null, nextKey='';
+    keys.forEach(k=>{
+        const t = timingsData[k]?.match(/\d{1,2}:\d{2}/);
+        if(!t) return;
+        const [h,m] = t.map(Number);
+        const target = new Date(now.getFullYear(),now.getMonth(),now.getDate(),h,m,0);
+        if(target>now && (!nextTime || target<nextTime)){
+            nextTime=target; nextKey=k;
+        }
+    });
+
+    // Highlight next prayer
+    keys.forEach(k=>{
+        const el=document.getElementById(k);
+        if(!el) return;
+        if(k===nextKey) el.classList.add('nextPrayer');
+        else el.classList.remove('nextPrayer');
+    });
+
+    // Countdown
+    const countdownEl = document.getElementById('countdown');
+    if(nextTime){
+        let diff = Math.floor((nextTime-now)/1000);
+        const h=Math.floor(diff/3600); diff%=3600;
+        const m=Math.floor(diff/60); const s=diff%60;
+        countdownEl.textContent=`Next prayer in: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')} / اگلی نماز: ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }else countdownEl.textContent='No more prayers today / آج مزید نماز نہیں';
+}
+setInterval(updateNextPrayer,1000);
+</script>
+</body>
+</html>
